@@ -2,7 +2,7 @@
 -- BIBLIOTECA FAMETRO - 01_ddl.sql
 -- Criação do esquema relacional (3FN) com todas as constraints.
 -- SGBD: SQLite 3.35+  |  Ordem de execução: 01 -> 02 -> 03 -> 04 -> 05
--- =====================================================================
+-- ===================================================================
 PRAGMA foreign_keys = ON;
 
 DROP TABLE IF EXISTS multa;
