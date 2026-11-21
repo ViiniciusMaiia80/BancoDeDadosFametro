@@ -1,0 +1,257 @@
+{
+ "volumes": {
+  "livro": 150096,
+  "autor": 20131,
+  "exemplar": 255217,
+  "usuario": 30352,
+  "emprestimo": 505633,
+  "multa": 150462
+ },
+ "tempo_indices_s": 2.3588672710000083,
+ "tam_antes_mb": 76.550144,
+ "tam_depois_mb": 138.215424,
+ "sqlite": "3.45.1",
+ "experimentos": [
+  {
+   "id": "E1",
+   "desc": "Busca por ISBN (exato)"
+  },
+  {
+   "id": "E2",
+   "desc": "Busca por título (começa com...)"
+  },
+  {
+   "id": "E3",
+   "desc": "Busca por 2 palavras em qualquer parte do título (LIKE '%a%' AND '%b%'  ->  FTS5)"
+  },
+  {
+   "id": "E4",
+   "desc": "Obras de um autor (busca por nome)"
+  },
+  {
+   "id": "E5",
+   "desc": "Exemplares disponíveis de uma obra"
+  },
+  {
+   "id": "E6",
+   "desc": "Empréstimos em aberto do usuário (checagem de limite feita pela trigger)"
+  },
+  {
+   "id": "E7",
+   "desc": "Histórico recente de um usuário (JOIN com livro)"
+  },
+  {
+   "id": "E8",
+   "desc": "Disponibilidade de uma obra (view vw_disponibilidade_acervo)"
+  },
+  {
+   "id": "E9",
+   "desc": "Relatório: empréstimos atrasados (view vw_emprestimos_atrasados)"
+  },
+  {
+   "id": "E10",
+   "desc": "Relatório: alunos com pendências (view vw_alunos_com_pendencias)"
+  },
+  {
+   "id": "E11",
+   "desc": "Relatório: livros mais emprestados por curso (view, agrega 505 mil empréstimos)"
+  }
+ ],
+ "antes": {
+  "E1": {
+   "media": 7.189915540001834,
+   "mediana": 6.601813999964179,
+   "p95": 9.560019000105058,
+   "linhas": 1.0,
+   "plano": "SCAN livro",
+   "reps": 200
+  },
+  "E2": {
+   "media": 9.327987275003125,
+   "mediana": 9.027675500021815,
+   "p95": 12.721884000029604,
+   "linhas": 82.5,
+   "plano": "SCAN livro | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 40
+  },
+  "E3": {
+   "media": 15.716399500013267,
+   "mediana": 15.446605500017085,
+   "p95": 25.632169999994403,
+   "linhas": 134.5,
+   "plano": "SCAN livro",
+   "reps": 40
+  },
+  "E4": {
+   "media": 58.44923594999614,
+   "mediana": 53.10366399999111,
+   "p95": 82.95311100005165,
+   "linhas": 375.0,
+   "plano": "SCAN la USING COVERING INDEX sqlite_autoindex_livro_autor_1 | SEARCH a USING INTEGER PRIMARY KEY (rowid=?) | SEARCH l USING INTEGER PRIMARY KEY (rowid=?)",
+   "reps": 20
+  },
+  "E5": {
+   "media": 10.072495190002542,
+   "mediana": 8.76033100001905,
+   "p95": 14.324886999929731,
+   "linhas": 1.98,
+   "plano": "SCAN exemplar",
+   "reps": 200
+  },
+  "E6": {
+   "media": 0.1559114248696276,
+   "mediana": 0.15245800000229792,
+   "p95": 0.17926800001077936,
+   "linhas": 1.0,
+   "plano": "SCAN emprestimo USING INDEX ux_emprestimo_aberto_exemplar",
+   "reps": 193
+  },
+  "E7": {
+   "media": 19.916432466319456,
+   "mediana": 19.960740000101396,
+   "p95": 21.030129999985547,
+   "linhas": 16.678756476683937,
+   "plano": "SCAN e | SEARCH x USING INTEGER PRIMARY KEY (rowid=?) | SEARCH l USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 193
+  },
+  "E8": {
+   "media": 10.713496754992775,
+   "mediana": 10.357678999980635,
+   "p95": 13.721069999974134,
+   "linhas": 1.0,
+   "plano": "CO-ROUTINE vw_disponibilidade_acervo | SEARCH l USING INTEGER PRIMARY KEY (rowid=?) | SCAN x LEFT-JOIN | CORRELATED SCALAR SUBQUERY 3 | SEARCH r USING COVERING INDEX ux_reserva_ativa_usuario_livro (id_livro=?) | SCAN vw_disponibilidade_acervo",
+   "reps": 200
+  },
+  "E9": {
+   "media": 1.1693832000219118,
+   "mediana": 1.1630910000803851,
+   "p95": 1.2236060000532234,
+   "linhas": 50.0,
+   "plano": "SCAN e USING INDEX ux_emprestimo_aberto_exemplar | SEARCH u USING INTEGER PRIMARY KEY (rowid=?) | SEARCH t USING INTEGER PRIMARY KEY (rowid=?) | SEARCH c USING INTEGER PRIMARY KEY (rowid=?) | SEARCH x USING INTEGER PRIMARY KEY (rowid=?) | SEARCH l USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 5
+  },
+  "E10": {
+   "media": 19.5880927999724,
+   "mediana": 19.408064999993258,
+   "p95": 20.00020399998448,
+   "linhas": 50.0,
+   "plano": "CO-ROUTINE devedores | COMPOUND QUERY | LEFT-MOST SUBQUERY | MATERIALIZE multas | SCAN mu | SEARCH e USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR GROUP BY | SCAN multas | UNION USING TEMP B-TREE | MATERIALIZE atrasos | SCAN e USING INDEX ux_emprestimo_aberto_exemplar | SEARCH u2 USING INTEGER PRIMARY KEY (rowid=?) | SEARCH t2 USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR GROUP BY | SCAN atrasos | SCAN d | SEARCH u USING INTEGER PRIMARY KEY (rowid=?) | SEARCH t USING INTEGER PRIMARY KEY (rowid=?) | SEARCH c USING INTEGER PRIMARY KEY (rowid=?) | BLOOM FILTER ON m (id_usuario=?) | SEARCH m USING AUTOMATIC COVERING INDEX (id_usuario=?) LEFT-JOIN | BLOOM FILTER ON a (id_usuario=?) | SEARCH a USING AUTOMATIC COVERING INDEX (id_usuario=?) LEFT-JOIN | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 5
+  },
+  "E11": {
+   "media": 1737.4854793333345,
+   "mediana": 1621.8734220000215,
+   "p95": 2001.059650000002,
+   "linhas": 80.0,
+   "plano": "CO-ROUTINE ranking | CO-ROUTINE (subquery-5) | CO-ROUTINE base | SCAN e | SEARCH u USING INTEGER PRIMARY KEY (rowid=?) | SEARCH x USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR GROUP BY | SCAN b | USE TEMP B-TREE FOR ORDER BY | SCAN (subquery-5) | SCAN r | SEARCH c USING INTEGER PRIMARY KEY (rowid=?) | SEARCH l USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 3
+  },
+  "OP": {
+   "ms_total": 6159.233448000009,
+   "n": 250
+  },
+  "INS": {
+   "ms_total": 222.7402550000761,
+   "n": 50000
+  }
+ },
+ "depois": {
+  "E1": {
+   "media": 0.008092234998571257,
+   "mediana": 0.007116000006135437,
+   "p95": 0.012538000078166078,
+   "linhas": 1.0,
+   "plano": "SEARCH livro USING INDEX ux_livro_isbn (isbn=?)",
+   "reps": 200
+  },
+  "E2": {
+   "media": 0.06494479999332725,
+   "mediana": 0.058397500026785565,
+   "p95": 0.10335900003610732,
+   "linhas": 82.5,
+   "plano": "SEARCH livro USING COVERING INDEX idx_livro_titulo (titulo>? AND titulo<?) | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 40
+  },
+  "E3": {
+   "media": 0.43401312500463973,
+   "mediana": 0.4349529999672086,
+   "p95": 0.5483529999992243,
+   "linhas": 134.5,
+   "plano": "SCAN f VIRTUAL TABLE INDEX 0:M1 | SEARCH l USING INTEGER PRIMARY KEY (rowid=?)",
+   "reps": 40
+  },
+  "E4": {
+   "media": 0.597239250015491,
+   "mediana": 0.5747394999957578,
+   "p95": 0.9030920000441256,
+   "linhas": 375.0,
+   "plano": "SEARCH a USING COVERING INDEX idx_autor_nome (nome>? AND nome<?) | SEARCH la USING COVERING INDEX idx_livro_autor_autor (id_autor=?) | SEARCH l USING INTEGER PRIMARY KEY (rowid=?)",
+   "reps": 20
+  },
+  "E5": {
+   "media": 0.008215080006266362,
+   "mediana": 0.007348500048465212,
+   "p95": 0.010841000062100647,
+   "linhas": 1.98,
+   "plano": "SEARCH exemplar USING INDEX idx_exemplar_livro_status (id_livro=? AND status=?)",
+   "reps": 200
+  },
+  "E6": {
+   "media": 0.005622715028138199,
+   "mediana": 0.004891000003226509,
+   "p95": 0.008654999987811607,
+   "linhas": 1.0,
+   "plano": "SEARCH emprestimo USING COVERING INDEX idx_emprestimo_usuario (id_usuario=? AND data_devolucao=?)",
+   "reps": 193
+  },
+  "E7": {
+   "media": 0.09437391709435865,
+   "mediana": 0.08978599998954451,
+   "p95": 0.12958699994669587,
+   "linhas": 16.678756476683937,
+   "plano": "SEARCH e USING INDEX idx_emprestimo_usuario (id_usuario=?) | SEARCH x USING INTEGER PRIMARY KEY (rowid=?) | SEARCH l USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 193
+  },
+  "E8": {
+   "media": 0.01042148999829351,
+   "mediana": 0.009684000019660743,
+   "p95": 0.015041999972709164,
+   "linhas": 1.0,
+   "plano": "CO-ROUTINE vw_disponibilidade_acervo | SEARCH l USING INTEGER PRIMARY KEY (rowid=?) | SEARCH x USING COVERING INDEX idx_exemplar_livro_status (id_livro=?) LEFT-JOIN | CORRELATED SCALAR SUBQUERY 3 | SEARCH r USING COVERING INDEX idx_reserva_livro_status (id_livro=? AND status=?) | SCAN vw_disponibilidade_acervo",
+   "reps": 200
+  },
+  "E9": {
+   "media": 1.218895000010889,
+   "mediana": 1.234101000022747,
+   "p95": 1.2631329999521768,
+   "linhas": 50.0,
+   "plano": "SCAN e USING INDEX ux_emprestimo_aberto_exemplar | SEARCH u USING INTEGER PRIMARY KEY (rowid=?) | SEARCH t USING INTEGER PRIMARY KEY (rowid=?) | SEARCH c USING INTEGER PRIMARY KEY (rowid=?) | SEARCH x USING INTEGER PRIMARY KEY (rowid=?) | SEARCH l USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 5
+  },
+  "E10": {
+   "media": 14.735970800006726,
+   "mediana": 14.729832000057286,
+   "p95": 14.939531999971223,
+   "linhas": 50.0,
+   "plano": "CO-ROUTINE devedores | COMPOUND QUERY | LEFT-MOST SUBQUERY | MATERIALIZE multas | SCAN mu USING INDEX idx_multa_pendente | SEARCH e USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR GROUP BY | SCAN multas | UNION USING TEMP B-TREE | MATERIALIZE atrasos | SCAN e USING INDEX ux_emprestimo_aberto_exemplar | SEARCH u2 USING INTEGER PRIMARY KEY (rowid=?) | SEARCH t2 USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR GROUP BY | SCAN atrasos | SCAN d | SEARCH u USING INTEGER PRIMARY KEY (rowid=?) | SEARCH t USING COVERING INDEX sqlite_autoindex_tipo_usuario_1 (nome=? AND rowid=?) | SEARCH c USING INTEGER PRIMARY KEY (rowid=?) | BLOOM FILTER ON m (id_usuario=?) | SEARCH m USING AUTOMATIC COVERING INDEX (id_usuario=?) LEFT-JOIN | BLOOM FILTER ON a (id_usuario=?) | SEARCH a USING AUTOMATIC COVERING INDEX (id_usuario=?) LEFT-JOIN | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 5
+  },
+  "E11": {
+   "media": 1165.4950513333613,
+   "mediana": 1141.5632330000562,
+   "p95": 1244.9809759999653,
+   "linhas": 80.0,
+   "plano": "CO-ROUTINE ranking | CO-ROUTINE (subquery-5) | CO-ROUTINE base | SCAN u USING COVERING INDEX idx_usuario_curso | SEARCH e USING COVERING INDEX idx_emprestimo_usuario (id_usuario=?) | SEARCH x USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR GROUP BY | SCAN b | USE TEMP B-TREE FOR ORDER BY | SCAN (subquery-5) | SCAN r | SEARCH l USING INTEGER PRIMARY KEY (rowid=?) | SEARCH c USING INTEGER PRIMARY KEY (rowid=?) | USE TEMP B-TREE FOR ORDER BY",
+   "reps": 3
+  },
+  "OP": {
+   "ms_total": 8.377679999966858,
+   "n": 250
+  },
+  "INS": {
+   "ms_total": 617.3788139999488,
+   "n": 50000
+  }
+ },
+ "n_indices": 15
+}
